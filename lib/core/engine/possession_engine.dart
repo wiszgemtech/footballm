@@ -1,210 +1,191 @@
-import 'dart:math';
+import 'player.dart';
+import 'youth_player.dart';
 
-import '../models/match_state.dart';
-import '../models/player.dart';
-import '../models/team.dart';
-import 'shot_engine.dart';
+/// Represents a football/soccer team
+class Team {
+  // ===================== BASIC INFO =====================
+  String id;
+  String name;
+  String country;
+  String league;
+  String shortName;
+  String emblemUrl;
 
-class PossessionEngine {
-  static final Random _rng = Random();
+  // ===================== FINANCES =====================
+  double budget;
+  double wageBudget;
+  double transferBudget;
+  double clubValue;
 
-  /// Runs a single possession sequence (pass / dribble / shot)
-  static void runPossession(MatchState match) {
-    final Team attacking = match.possession;
-    final Team defending = attacking == match.home ? match.away : match.home;
+  // ===================== ROSTER =====================
+  List<Player> seniorSquad;
+  List<YouthPlayer> youthSquad;
 
-    final Player actor = _selectActor(attacking);
+  List<Player> get roster => seniorSquad;
 
-    final String action = _decideAction(actor, attacking, defending);
+  // ===================== FORMATION & TACTICS =====================
+  String formation;
+  String playingStyle;
+  double teamChemistry;
+  double morale;
 
-    switch (action) {
-      case 'shot':
-        _handleShot(actor, attacking, defending, match);
-        break;
-      case 'dribble':
-        _handleDribble(actor, defending, match);
-        break;
-      case 'pass':
-      default:
-        _handlePass(actor, attacking, match);
-        break;
+  // ===================== MATCH STATS =====================
+  int matchesPlayed;
+  int wins;
+  int draws;
+  int losses;
+  int goalsFor;
+  int goalsAgainst;
+  int points;
+
+  // ===================== STAFF =====================
+  String manager;
+  String assistantManager;
+  String coach;
+  String scout;
+  String physiotherapist;
+  String goalkeeperCoach;
+
+  List<String> get staff => [
+        manager,
+        assistantManager,
+        coach,
+        scout,
+        physiotherapist,
+        goalkeeperCoach,
+      ];
+
+  // ===================== YOUTH ACADEMY =====================
+  int youthAcademyLevel;
+  int homegrownPlayers;
+  double youthInvestment;
+
+  // ===================== HISTORY & ACHIEVEMENTS =====================
+  List<String> pastTrophies;
+  List<String> pastLeagues;
+  Map<String, int> records;
+
+  // ===================== CONSTRUCTOR =====================
+  Team({
+    required this.id,
+    required this.name,
+    this.country = '',
+    this.league = '',
+    this.shortName = '',
+    this.emblemUrl = '',
+    this.budget = 0,
+    this.wageBudget = 0,
+    this.transferBudget = 0,
+    this.clubValue = 0,
+    List<Player>? seniorSquad,
+    List<YouthPlayer>? youthSquad,
+    this.formation = '4-4-2',
+    this.playingStyle = 'Balanced',
+    this.teamChemistry = 75,
+    this.morale = 75,
+    this.matchesPlayed = 0,
+    this.wins = 0,
+    this.draws = 0,
+    this.losses = 0,
+    this.goalsFor = 0,
+    this.goalsAgainst = 0,
+    this.points = 0,
+    this.manager = '',
+    this.assistantManager = '',
+    this.coach = '',
+    this.scout = '',
+    this.physiotherapist = '',
+    this.goalkeeperCoach = '',
+    this.youthAcademyLevel = 3,
+    this.homegrownPlayers = 0,
+    this.youthInvestment = 0,
+    List<String>? pastTrophies,
+    List<String>? pastLeagues,
+    Map<String, int>? records,
+  })  : seniorSquad = seniorSquad ?? [],
+        youthSquad = youthSquad ?? [],
+        pastTrophies = pastTrophies ?? [],
+        pastLeagues = pastLeagues ?? [],
+        records = records ?? {};
+
+  // ===================== METHODS =====================
+
+  /// Returns the starting XI based on OVR
+  List<Player> getStartingLineup() {
+    final sorted = List<Player>.from(seniorSquad);
+    sorted.sort((a, b) => b.calculateOverall().compareTo(a.calculateOverall()));
+    return sorted.take(11).toList();
+  }
+
+  double calculateTeamStrength() {
+    final lineup = getStartingLineup();
+    if (lineup.isEmpty) return 0;
+    double avgOvr = lineup.map((p) => p.calculateOverall()).reduce((a, b) => a + b) / lineup.length;
+    return (avgOvr * 0.7 + teamChemistry * 0.3).clamp(0, 100);
+  }
+
+  /// Promote youth players
+  void promoteYouth(int count) {
+    final promotable = youthSquad.where((y) => !y.promoted).take(count).toList();
+    for (var yp in promotable) {
+      yp.promote();
+      seniorSquad.add(yp);
+      homegrownPlayers++;
     }
-
-    // Possession turnover (~12%)
-    if (_rng.nextDouble() < 0.12) {
-      match.switchPossession();
-    }
+    youthSquad.removeWhere((y) => y.promoted);
   }
 
-  // ============================================================
-  // PLAYER SELECTION
-  // ============================================================
+  void addPlayer(Player player) => seniorSquad.add(player);
 
-  static Player _selectActor(Team team) {
-    final players = team.seniorSquad.where((p) => p.position != 'GK').toList();
+  void removePlayer(Player player) => seniorSquad.removeWhere((p) => p.id == player.id);
 
-    players.sort((a, b) {
-      double scoreA =
-          a.calculateOverall() * 0.5 +
-          a.form * 0.3 +
-          a.morale * 0.2 +
-          _rng.nextDouble() * 5;
+  void addYouthPlayer(YouthPlayer yp) => youthSquad.add(yp);
 
-      double scoreB =
-          b.calculateOverall() * 0.5 +
-          b.form * 0.3 +
-          b.morale * 0.2 +
-          _rng.nextDouble() * 5;
-
-      return scoreB.compareTo(scoreA);
-    });
-
-    return players.first;
+  /// Basic average calculation helper
+  double _average(num Function(Player) selector, {double fallback = 50}) {
+    final players = seniorSquad.where((p) => !p.injured && !p.suspended);
+    if (players.isEmpty) return fallback;
+    return (players.map(selector).reduce((a, b) => a + b) / players.length).clamp(0, 100);
   }
 
-  // ============================================================
-  // ACTION DECISION
-  // ============================================================
+  double get averageStamina => _average((p) => p.stamina);
+  double get averagePhysical => _average((p) => p.physical);
+  double get averageIntelligence => _average((p) => p.intelligence);
+  double get averagePassing => _average((p) => p.passing);
+  double get averageDribbling => _average((p) => p.dribbling);
+  double get averageDefending => _average((p) => p.defending);
+  double get averageShooting => _average((p) => p.shooting);
+  double get averageVision => _average((p) => p.vision);
+  double get averageForm => _average((p) => p.form, fallback: morale);
+  double get averageMorale => _average((p) => p.morale, fallback: morale);
+  double get averageFatigue => _average((p) => p.fatigue, fallback: 0);
+  double get averageGoalkeeping => _average((p) => (p.reflexes + p.handling) / 2);
 
-  static String _decideAction(Player player, Team attacking, Team defending) {
-    final double shotWeight = _shotBias(
-      player.position,
-      attacking.playingStyle,
-    );
+  Player get goalkeeper =>
+      seniorSquad.firstWhere((p) => p.position == 'GK', orElse: () => Player(
+        id: 'dummyGK',
+        name: 'Dummy GK',
+        age: 30,
+        nationality: country,
+        countryOfBirth: country,
+        position: 'GK',
+        squadNumber: 1,
+        preferredFoot: 'Right',
+      ));
 
-    final double passWeight = player.passing * 0.7 + player.vision * 0.3;
-
-    final double dribbleWeight = player.dribbling * 0.6 + player.pace * 0.4;
-
-    final double total = shotWeight + passWeight + dribbleWeight;
-
-    final double roll = _rng.nextDouble() * total;
-
-    if (roll < shotWeight) return 'shot';
-    if (roll < shotWeight + dribbleWeight) return 'dribble';
-    return 'pass';
-  }
-
-  static double _shotBias(String position, String style) {
-    double base;
-
-    switch (position) {
-      case 'ST':
-      case 'CF':
-        base = 55;
-        break;
-      case 'LW':
-      case 'RW':
-      case 'AM':
-        base = 45;
-        break;
-      case 'CM':
-        base = 25;
-        break;
-      case 'CB':
-      case 'LB':
-      case 'RB':
-        base = 10;
-        break;
-      default:
-        base = 5;
-    }
-
-    if (style == 'Attacking') base += 10;
-    if (style == 'Counter') base += 5;
-    if (style == 'Defensive') base -= 8;
-
-    return base.clamp(0, 100);
-  }
-
-  // ============================================================
-  // PASS LOGIC
-  // ============================================================
-
-  static void _handlePass(Player player, Team attacking, MatchState match) {
-    final stats = match.playerStats[player]!;
-
-    double successChance =
-        player.passing * 0.6 + player.vision * 0.2 + player.intelligence * 0.2;
-
-    successChance *= attacking.teamChemistry / 100;
-    successChance *= (player.form + player.morale) / 200;
-    successChance *= (1 - player.fatigue / 120);
-
-    successChance = successChance.clamp(5, 95);
-
-    stats.passesAttempted++;
-
-    if (_rng.nextDouble() * 100 < successChance) {
-      stats.passesCompleted++;
+  /// Update match result
+  void updateMatchResult({required int goalsFor, required int goalsAgainst}) {
+    matchesPlayed++;
+    this.goalsFor += goalsFor;
+    this.goalsAgainst += goalsAgainst;
+    if (goalsFor > goalsAgainst) {
+      wins++;
+      points += 3;
+    } else if (goalsFor == goalsAgainst) {
+      draws++;
+      points += 1;
     } else {
-      match.switchPossession();
+      losses++;
     }
-  }
-
-  // ============================================================
-  // DRIBBLE LOGIC
-  // ============================================================
-
-  static void _handleDribble(Player player, Team defending, MatchState match) {
-    final stats = match.playerStats[player]!;
-
-    double successChance = player.dribbling * 0.6 + player.pace * 0.4;
-
-    final double defensePressure = defending.calculateTeamStrength() / 100;
-
-    successChance *= (1 - defensePressure * 0.25);
-    successChance *= (player.form / 100);
-    successChance *= (1 - player.fatigue / 120);
-
-    successChance = successChance.clamp(5, 90);
-
-    stats.dribblesAttempted++;
-
-    if (_rng.nextDouble() * 100 < successChance) {
-      stats.dribblesCompleted++;
-    } else {
-      match.switchPossession();
-    }
-  }
-
-  // ============================================================
-  // SHOT LOGIC
-  // ============================================================
-
-  static void _handleShot(
-    Player shooter,
-    Team attacking,
-    Team defending,
-    MatchState match,
-  ) {
-    final Player goalkeeper = defending.seniorSquad.firstWhere(
-      (p) => p.position == 'GK',
-    );
-
-    final result = ShotEngine.takeShot(
-      shooter: shooter,
-      goalkeeper: goalkeeper,
-      difficultyMultiplier: 1 + (defending.calculateTeamStrength() / 200),
-      fatigueEffect: 1 - shooter.fatigue / 120,
-      pressure: defending.teamChemistry / 100,
-    );
-
-    match.registerShot(attacking, onTarget: result.goal || result.saved);
-
-    if (result.goal) {
-      match.registerGoal(attacking, scorer: shooter);
-    }
-  }
-}
-
-extension PossessionEngineStub on PossessionEngine {
-  static Player runPossessionChain(
-    Team attacking,
-    Team defending,
-    MatchState match,
-  ) {
-    // Replace with your real possession logic
-    return attacking.players.first;
   }
 }
