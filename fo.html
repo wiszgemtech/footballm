@@ -3,60 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultra-Realistic SVG Face Customizer</title>
+<title>Ultra-Realistic SVG Face Editor</title>
 <style>
-  body { font-family: sans-serif; display: flex; gap: 50px; padding: 20px; background: #222; color: #fff; }
-  #controls { display: flex; flex-direction: column; gap: 10px; }
-  svg { border: 1px solid #ccc; background: #fff; border-radius: 10px; }
-  select, input, button { padding: 5px; }
+  body { margin:0; font-family: sans-serif; display:flex; gap:40px; padding:20px; background:#222; color:#fff;}
+  #controls { display:flex; flex-direction: column; gap:10px;}
+  svg { border-radius: 10px; background:#fff; width:300px; height:400px; }
+  input, select, button { padding:5px; margin-bottom:5px;}
 </style>
 </head>
 <body>
 
 <!-- SVG Canvas -->
-<svg id="faceSVG" width="300" height="400" viewBox="0 0 300 400">
-  <!-- Skin with gradient -->
+<svg id="faceSVG" viewBox="0 0 300 400">
   <defs>
+    <!-- Skin gradient -->
     <radialGradient id="skinGrad" cx="50%" cy="40%" r="50%">
       <stop offset="0%" stop-color="#f1c27d"/>
       <stop offset="100%" stop-color="#c68642"/>
     </radialGradient>
 
+    <!-- Hair gradient -->
     <radialGradient id="hairGrad" cx="50%" cy="30%" r="50%">
       <stop offset="0%" stop-color="#000"/>
       <stop offset="100%" stop-color="#3b2f2f"/>
     </radialGradient>
 
+    <!-- Beard gradient -->
     <radialGradient id="beardGrad" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#000"/>
       <stop offset="100%" stop-color="#3b2f2f"/>
     </radialGradient>
 
+    <!-- Eye gradient -->
     <radialGradient id="eyeGrad" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#000"/>
       <stop offset="100%" stop-color="#1c1c1c"/>
     </radialGradient>
   </defs>
 
-  <!-- Head -->
-  <ellipse id="skin" cx="150" cy="200" rx="90" ry="120" fill="url(#skinGrad)" />
-
-  <!-- Hair -->
+  <!-- Face layers -->
+  <ellipse id="skin" cx="150" cy="200" rx="90" ry="120" fill="url(#skinGrad)"/>
   <path id="hair" d="M60,100 C80,20 220,20 240,100 Q200,50 150,60 Q100,50 60,100" fill="url(#hairGrad)"/>
-
-  <!-- Beard -->
   <path id="beard" d="M90,280 Q150,360 210,280 Q190,310 110,310 Q90,280 90,280" fill="url(#beardGrad)"/>
-
-  <!-- Eyes -->
+  <path id="eyebrows" d="M95,160 Q110,150 125,160 M175,160 Q190,150 205,160" stroke="#000" stroke-width="4" stroke-linecap="round"/>
   <ellipse id="eyeLeft" cx="110" cy="180" rx="15" ry="10" fill="url(#eyeGrad)"/>
   <ellipse id="eyeRight" cx="190" cy="180" rx="15" ry="10" fill="url(#eyeGrad)"/>
-
-  <!-- Pupils -->
   <circle id="pupilLeft" cx="110" cy="180" r="5" fill="#000"/>
   <circle id="pupilRight" cx="190" cy="180" r="5" fill="#000"/>
-
-  <!-- Mouth -->
-  <path id="mouth" d="M120,260 Q150,280 180,260" stroke="#000" stroke-width="3" fill="transparent"/>
+  <path id="nose" d="M150,180 Q145,210 150,230" stroke="#8d5524" stroke-width="4" fill="transparent"/>
+  <path id="mouth" d="M120,260 Q150,280 180,260" stroke="#8d1f1f" stroke-width="3" fill="transparent"/>
 </svg>
 
 <!-- Controls -->
@@ -65,6 +60,7 @@
   <label>Beard Color: <input type="color" id="beardColor" value="#000000"/></label>
   <label>Skin Tone: <input type="color" id="skinColor" value="#f1c27d"/></label>
   <label>Eye Color: <input type="color" id="eyeColor" value="#000000"/></label>
+  <label>Eyebrow Color: <input type="color" id="eyebrowColor" value="#000000"/></label>
   <button id="randomBtn">Random Face</button>
 </div>
 
@@ -77,10 +73,12 @@
     eyeRight: document.getElementById("eyeRight"),
     pupilLeft: document.getElementById("pupilLeft"),
     pupilRight: document.getElementById("pupilRight"),
+    eyebrows: document.getElementById("eyebrows"),
+    nose: document.getElementById("nose"),
+    mouth: document.getElementById("mouth")
   };
 
-  function applyFace(data) {
-    // Update colors
+  function applyFace(data){
     face.skin.setAttribute("fill", data.skin);
     face.hair.setAttribute("fill", data.hair);
     face.beard.setAttribute("fill", data.beard);
@@ -88,38 +86,47 @@
     face.eyeRight.setAttribute("fill", data.eye);
     face.pupilLeft.setAttribute("fill", data.pupil);
     face.pupilRight.setAttribute("fill", data.pupil);
+    face.eyebrows.setAttribute("stroke", data.eyebrow);
+    face.nose.setAttribute("stroke", data.skin);
+    face.mouth.setAttribute("stroke", data.lips);
   }
 
-  // Inputs
   const hairInput = document.getElementById("hairColor");
   const beardInput = document.getElementById("beardColor");
   const skinInput = document.getElementById("skinColor");
   const eyeInput = document.getElementById("eyeColor");
+  const eyebrowInput = document.getElementById("eyebrowColor");
   const randomBtn = document.getElementById("randomBtn");
 
-  [hairInput, beardInput, skinInput, eyeInput].forEach(input => {
-    input.addEventListener("input", () => {
+  [hairInput, beardInput, skinInput, eyeInput, eyebrowInput].forEach(input=>{
+    input.addEventListener("input", ()=>{
       applyFace({
         hair: hairInput.value,
         beard: beardInput.value,
         skin: skinInput.value,
         eye: eyeInput.value,
-        pupil: "#000000"
+        pupil: "#000000",
+        eyebrow: eyebrowInput.value,
+        lips: "#8d1f1f"
       });
     });
   });
 
-  randomBtn.addEventListener("click", () => {
+  randomBtn.addEventListener("click", ()=>{
     const skinColors = ["#f1c27d","#e0ac69","#c68642","#8d5524"];
     const hairColors = ["#000000","#3b2f2f","#a55728","#d6b370"];
     const beardColors = ["#000000","#3b2f2f","#a55728","#d6b370"];
     const eyeColors = ["#000000","#1c1c1c","#3b2f2f","#5a3d1f"];
+    const eyebrowColors = ["#000000","#3b2f2f","#4b3621","#5a3d1f"];
+
     applyFace({
       hair: hairColors[Math.floor(Math.random()*hairColors.length)],
       beard: beardColors[Math.floor(Math.random()*beardColors.length)],
       skin: skinColors[Math.floor(Math.random()*skinColors.length)],
       eye: eyeColors[Math.floor(Math.random()*eyeColors.length)],
-      pupil: "#000000"
+      pupil: "#000000",
+      eyebrow: eyebrowColors[Math.floor(Math.random()*eyebrowColors.length)],
+      lips: "#8d1f1f"
     });
   });
 
@@ -129,7 +136,9 @@
     beard: beardInput.value,
     skin: skinInput.value,
     eye: eyeInput.value,
-    pupil: "#000000"
+    pupil: "#000000",
+    eyebrow: eyebrowInput.value,
+    lips: "#8d1f1f"
   });
 </script>
 
