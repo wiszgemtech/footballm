@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Football Player Face Customizer</title>
+<style>
+  body { font-family: sans-serif; display: flex; gap: 50px; padding: 20px; }
+  #controls { display: flex; flex-direction: column; gap: 10px; }
+  svg { border: 1px solid #ccc; }
+  button { padding: 5px 10px; }
+</style>
+</head>
+<body>
+
+<!-- SVG Face Canvas -->
+<svg id="faceSVG" width="256" height="256">
+  <!-- Base Head -->
+  <circle id="skin" cx="128" cy="140" r="80" fill="#f1c27d"/>
+  <!-- Eyes -->
+  <circle id="eyeLeft" cx="98" cy="120" r="6" fill="#000"/>
+  <circle id="eyeRight" cx="158" cy="120" r="6" fill="#000"/>
+  <!-- Hair -->
+  <rect id="hair" x="48" y="60" width="160" height="50" fill="#000"/>
+  <!-- Beard -->
+  <rect id="beard" x="78" y="160" width="100" height="40" fill="#000"/>
+  <!-- Mouth -->
+  <path id="mouth" d="M98,160 Q128,180 158,160" stroke="#000" stroke-width="3" fill="transparent"/>
+</svg>
+
+<!-- Controls -->
+<div id="controls">
+  <label>Hair Style:
+    <select id="hairSelect">
+      <option value="none">None</option>
+      <option value="short">Short</option>
+      <option value="long">Long</option>
+    </select>
+  </label>
+
+  <label>Beard Style:
+    <select id="beardSelect">
+      <option value="none">None</option>
+      <option value="stubble">Stubble</option>
+      <option value="full">Full Beard</option>
+    </select>
+  </label>
+
+  <label>Skin Tone:
+    <input type="color" id="skinColor" value="#f1c27d"/>
+  </label>
+
+  <label>Hair Color:
+    <input type="color" id="hairColor" value="#000000"/>
+  </label>
+
+  <label>Eye Color:
+    <input type="color" id="eyeColor" value="#000000"/>
+  </label>
+
+  <button id="randomBtn">Generate Random Face</button>
+</div>
+
+<script>
+  const face = {
+    skin: document.getElementById("skin"),
+    hair: document.getElementById("hair"),
+    beard: document.getElementById("beard"),
+    eyeLeft: document.getElementById("eyeLeft"),
+    eyeRight: document.getElementById("eyeRight"),
+  };
+
+  // Apply face appearance
+  function applyFace(data) {
+    // Hair
+    face.hair.style.display = data.hair === "none" ? "none" : "block";
+    face.hair.setAttribute("fill", data.hairColor);
+
+    // Beard
+    face.beard.style.display = data.beard === "none" ? "none" : "block";
+    face.beard.setAttribute("fill", data.hairColor);
+
+    // Skin
+    face.skin.setAttribute("fill", data.skin);
+
+    // Eyes
+    face.eyeLeft.setAttribute("fill", data.eyeColor);
+    face.eyeRight.setAttribute("fill", data.eyeColor);
+  }
+
+  // Event listeners
+  document.getElementById("hairSelect").addEventListener("change", e => {
+    applyFace({
+      hair: e.target.value,
+      beard: document.getElementById("beardSelect").value,
+      skin: document.getElementById("skinColor").value,
+      hairColor: document.getElementById("hairColor").value,
+      eyeColor: document.getElementById("eyeColor").value
+    });
+  });
+
+  document.getElementById("beardSelect").addEventListener("change", e => {
+    applyFace({
+      hair: document.getElementById("hairSelect").value,
+      beard: e.target.value,
+      skin: document.getElementById("skinColor").value,
+      hairColor: document.getElementById("hairColor").value,
+      eyeColor: document.getElementById("eyeColor").value
+    });
+  });
+
+  document.getElementById("skinColor").addEventListener("input", e => {
+    applyFace({
+      hair: document.getElementById("hairSelect").value,
+      beard: document.getElementById("beardSelect").value,
+      skin: e.target.value,
+      hairColor: document.getElementById("hairColor").value,
+      eyeColor: document.getElementById("eyeColor").value
+    });
+  });
+
+  document.getElementById("hairColor").addEventListener("input", e => {
+    applyFace({
+      hair: document.getElementById("hairSelect").value,
+      beard: document.getElementById("beardSelect").value,
+      skin: document.getElementById("skinColor").value,
+      hairColor: e.target.value,
+      eyeColor: document.getElementById("eyeColor").value
+    });
+  });
+
+  document.getElementById("eyeColor").addEventListener("input", e => {
+    applyFace({
+      hair: document.getElementById("hairSelect").value,
+      beard: document.getElementById("beardSelect").value,
+      skin: document.getElementById("skinColor").value,
+      hairColor: document.getElementById("hairColor").value,
+      eyeColor: e.target.value
+    });
+  });
+
+  // Random face generator
+  document.getElementById("randomBtn").addEventListener("click", () => {
+    const hairOptions = ["none","short","long"];
+    const beardOptions = ["none","stubble","full"];
+    const skinOptions = ["#f1c27d","#e0ac69","#c68642","#8d5524"];
+    const hairColors = ["#000000","#3b2f2f","#a55728","#d6b370"];
+    const eyeColors = ["#000000","#1c1c1c","#3b2f2f","#5a3d1f"];
+
+    applyFace({
+      hair: hairOptions[Math.floor(Math.random()*hairOptions.length)],
+      beard: beardOptions[Math.floor(Math.random()*beardOptions.length)],
+      skin: skinOptions[Math.floor(Math.random()*skinOptions.length)],
+      hairColor: hairColors[Math.floor(Math.random()*hairColors.length)],
+      eyeColor: eyeColors[Math.floor(Math.random()*eyeColors.length)]
+    });
+  });
+
+  // Initialize
+  applyFace({
+    hair: "short",
+    beard: "none",
+    skin: "#f1c27d",
+    hairColor: "#000000",
+    eyeColor: "#000000"
+  });
+</script>
+
+</body>
+</html>
